@@ -1,30 +1,48 @@
-const taskGenerator = function*(){
-  for(let i = 1; i < 6; i++){
-    yield new Todo(`Task ${i}`);
+class Controller {
+  model;
+  view;
+
+  constructor(model, view) {
+    this.model = model;
+    this.view = view;
   }
-}
 
-const todoCreator = todo => {
-  const checkBox = $("input",{
-    checked: todo.checked,
-    type: "checkbox",
-    id: todo.id
-  });
-  const task = $("p",{innerText: todo.innerText,
-                      id: todo.id}); 
-  task.prepend(checkBox);
-  return task;
-}
+  run = async () => {
+        
+    this.rerender();
+    // Загрузили данные с сервера
+    await this.model.seedTodos();
 
-const compleatedTasks = () => `${todos.filter(t => t.checked == true).length}/${todos.length}` ;
+    this.rerender();
+  }
 
-const getTodos = () => {
-  Array.from(taskGenerator()).forEach(i => todos.push(i));
-  return todos;
-}
+  rerender = () => {
+    this.view.render(this.model.todos, this);
+  }
+  
+  renderSearchResult = (model) => {
+    this.view.renderSearchRequest(model, this);
+  }
 
-const tugle = e =>{
-  const check = todos.find(x => x.id == e.target.id);
-  check.checked = !check.checked;
-  updatePage();
+  toogle = (todo, e) => {
+    this.model.toogle(todo);
+    this.rerender();
+
+  }
+
+  search = e => {
+    const searchString = e.target.value; 
+    if(searchString === ""){
+      this.rerender();
+      return;
+    }
+    const searchResult = this.model.todos.filter(todo =>
+                              todo.title.search(searchString) > -1);
+    this.renderSearchResult(searchResult, searchString);
+  }
+
+  markAll = (todos, e) => {
+    todos.map(todo => this.model.toogle(todo));
+    this.view.renderTodosPart(this.model.todos, this);
+  }
 }
