@@ -17,15 +17,28 @@ class Todo {
 
 class Model {
   todos = [];
-
-  seedTodos = async () => {
-    await delay(500);
-    this.todos = Array.from({ length: 6 }, (_, i) => new Todo(i, `Task ${i}`)); 
+  constructor(todos) {
+    this.todos = todos;
   }
 
-  toogle = (todo) => {
-    this.todos = this.todos.slice();
-    this.todos.splice(this.todos.indexOf(todo), 1, todo.toogle());
+  seedTodos = async () => {
+    await delay(1000);
+    return new Model(Array.from({ length: 6 }, (_, i) => new Todo(i, `Task ${i}`)))
+  }
+
+  toogle = async (todo) => {
+    await delay(2000);
+    // return this.toogleMany(this.toogleList);
+    const todos = this.todos.slice();
+    todos.splice(todos.indexOf(todo), 1, todo.toogle());
+    return new Model(todos);
+  }
+
+  toogleMany = list => {
+    const todos = this.todos.slice();
+    list.forEach(todo =>
+      todos.splice(todos.indexOf(todo), 1, todo.toogle()));
+    return new Model(todos);
   }
   
 }

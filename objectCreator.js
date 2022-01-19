@@ -14,6 +14,6 @@ const $ = (tag, attrs = {}, ...children) => {
 
   });
 
-  children.forEach(child => e.append(child));
+  children.filter(child => child).forEach(child => e.append(child));
   return e;
 }
