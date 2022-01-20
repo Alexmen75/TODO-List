@@ -13,14 +13,19 @@ class ViewModel {
   }
 }
 
+
+
+
 class Controller {
   model;
   view;
   viewModel;
-  usingEntries = new Set();
   
-
-  loadingContent = new Map();
+  loadingContent = {
+    usingEntries: new Set(),
+    insertByResult: new Map(),
+  } 
+  
 
 
   constructor(model, view) {
@@ -32,6 +37,21 @@ class Controller {
     this.model = model;
     this.viewModel = new ViewModel(this.model.todos, (this.viewModel || {}).query);
   }
+
+  switchChange = (model, contextModel) => {
+    const aggregateModel = model;
+    aggregateModel.todos = model.todos.map(todo => {
+      const contextValue = contextModel.todos.find(x => x.id == todo.id);
+      return contextValue.isDone == todo.isDone ?
+              this.model.todos.find(x => x.id == contextValue.id) :
+              todo;
+    }) 
+    this.setModel(aggregateModel);
+  }
+     // if(contextValue.isDone == todo.isDone){
+      //   return this.model.todos.find(x => x.id == contextValue.id);
+      // }
+      // return todo;
 
   run = async () => {
     this.blockLoadExecute(["todos"], this.model.seedTodos, this.setModel);
@@ -47,19 +67,24 @@ class Controller {
   }
 
   rerender = () => {
+    console.log('страница обновлена')
     this.view.render(this.viewModel, this);
   }
   
-  // renderSearchResult = (model) => {
+  // renderSearchResult = (model) => {  
   //   this.view.renderSearchRequest(model, this);
   // }
 
 
   toogle = async (todo, e) => {
-    this.blockLoadExecute([todo.id], () => this.model.toogle(todo), this.setModel);
+    // this.rerender();
+    // const contextModel = this.model
+    // this.setModel(await contextModel.toogle(todo), contextModel);
+    // this.rerender();
+    
+    const contextModel = this.model;
+    this.blockLoadExecute([todo.id], () => this.model.toogle(todo), result => this.switchChange(result, contextModel));
     this.rerender();
-
-
     // this.load(() => {
     //   this.usingEntries.add(todo.id);
     //   return this.model.toogle(todo);
@@ -68,8 +93,6 @@ class Controller {
     // (_) => this.usingEntries.delete(todo.id));
     // this.execute();
     
-    // this.setModel(await this.model.toogle(todo));
-    // this.rerender();
 
   }
 
@@ -84,7 +107,7 @@ class Controller {
   }
 
   load = (func,...needToPut) => {
-    this.loadingContent.set(func, Array.from(needToPut));
+    this.loadingContent.insertByResult.set(func, Array.from(needToPut));
   }
 
   // loadExecute = (func, ...needToPut) => {
@@ -92,25 +115,38 @@ class Controller {
   //   this.execute();
   // }
 
+  block = (...block) => this.loadingContent.usingEntries.add(...block);
+
   blockLoadExecute = (block, func, ...needToPut) => {
-    block.forEach(async item =>{
-      this.usingEntries.add(item);
-      this.load(func, ...needToPut,() => this.usingEntries.delete(item));
+      this.block(...block);
+      this.load(func, ...needToPut);
       this.execute();
-    });
   }
 
 
   execute = async () => 
-      await Array.from(this.loadingContent.entries()).map(async([key, value]) => {
+
+    this.loadingContent.insertByResult.forEach(async (value, key) => {
       const result = await key();
-      const r = value.map(func => func(result));
-      this.loadingContent.delete(key);
+      value.forEach(func => func(result));
+      this.loadingContent.insertByResult.delete(key);
+      this.loadingContent.usingEntries.clear();
       this.rerender();
-      return r;
-    });
+    })
+
+
+
+
+    //   await Array.from(this.loadingContent.insertByResult.entries()).map(async([key, value]) => {
+    //   const result = await key();
+    //   const r = value.map(func => func(result));
+    //   this.loadingContent.insertByResult.delete(key);
+    //   this.loadingContent.usingEntries.clear();
+    //   this.rerender();
+    //   return r;
+    // });
     
-    
+
     // Array.from(this.loadingContent.entries())
     // .map(async ([key, value]) => {
     //   const result = await key();

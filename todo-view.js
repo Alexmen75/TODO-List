@@ -31,7 +31,7 @@ class View {
   renderTodoSection = (todos, actions) =>
     $("div", {id: "todos-section"},
       this.renderCompleated(todos),
-      actions.usingEntries.has("todos") ?
+      actions.loadingContent.usingEntries.has("todos") ?
       this.renderLoading(actions) :
       this.renderTodos(todos, actions));
 
@@ -45,8 +45,9 @@ class View {
     $("label", {},
       $("input", {
         checked: todo.isDone,
+        id: todo.id,
         type: "checkbox",
-        disabled: actions.usingEntries.has(todo.id),
+        disabled: actions.loadingContent.usingEntries.has(todo.id),
         onchange: e => actions.toogle(todo, e)
         }),
       todo.title);

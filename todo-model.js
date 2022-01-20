@@ -27,6 +27,7 @@ class Model {
   }
 
   toogle = async (todo) => {
+    // console.log(await delay(2000), to);
     await delay(2000);
     // return this.toogleMany(this.toogleList);
     const todos = this.todos.slice();
@@ -44,4 +45,4 @@ class Model {
 }
 
 const delay = num => 
-  new Promise(resolve => setTimeout(resolve, num));
+  new Promise(resolve => setTimeout(resolve, num,"Delay"));
