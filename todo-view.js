@@ -5,83 +5,170 @@ class View {
   render = (todos, actions) => {
     document.body.innerHTML = "";
     document.body.append(this.renderApp(todos, actions));
-
-    this.elementInFocus.focus();
+    if(this.elementInFocus != null){
+      this.elementInFocus.focus();
+    }
   }
 
-  // renderSearchRequest = (todos, action) => {
-  //   const todoSection = document.getElementById("todos-section");
-  //   todoSection.innerHTML = "";
-  //   todoSection.append(this.renderMarkButton(todos, action), this.renderTodoSection(todos, action));
-  // }
-  
 
-  // renderTodosPart = (todos, action) => {
-  //   const todoSection = document.getElementById("todos-section");
-  //   todoSection.innerHTML = "";
-  //   todoSection.append(this.renderTodoSection(todos, action)); 
-  // }
-
-  renderApp = (todos, actions) => 
+  renderApp = (todos, actions) =>
     $("div", {},
       this.renderSearchBar(todos, actions),
       this.renderTodoSection(todos, actions));
 
-  
+
   renderTodoSection = (todos, actions) =>
-    $("div", {id: "todos-section"},
+    $("div", { id: "todos-section" },
       this.renderCompleated(todos),
-      actions.loadingContent.usingEntries.has("todos") ?
-      this.renderLoading(actions) :
-      this.renderTodos(todos, actions));
+      this.getTodoContent(todos, actions),
+      this.renderEmptyTodo(todos, actions));
 
 
-  renderTodos = (todos, actions) => 
-    $("div", { id: "todos" }, 
-      ...todos.filtered.map(todo => this.renderTodo(todo, actions)));
-  
-  
-  renderTodo = (todo, actions) => 
-    $("label", {},
-      $("input", {
-        checked: todo.isDone,
-        id: todo.id,
-        type: "checkbox",
-        disabled: actions.loadingContent.usingEntries.has(todo.id),
-        onchange: e => actions.toogle(todo, e)
-        }),
-      todo.title);
-    
+  getTodoContent = (todos, actions) => {
+    const task = todos.getTaskInfo("todos");
+    if (task.state == state.successfull) {
+      return this.renderTodos(todos, actions);
+    }
+    else if (task.state == state.failed) {
+      console.log(task.result);
+    }
+    return this.renderLoading();
+  }
+
+
+
+  renderTodos = (todos, actions) =>
+    $("div", { id: "todos" },
+      ...todos.filtered.map(todo => this.renderTodo(todo, actions, todos)));
+
+
+  renderTodo = (todo, actions, todos) =>
+    $("label", {id: "todo"},
+      ...this.getCheckboxState(todos, todo, actions));
+  // $("input", this.getCheckboxState(todos, todo, actions)),todo.title);
+  // this.renderLoading());
+
+
+
+  getCheckboxState = (todos, todo, actions) => {
+    const task = todos.getTaskInfo(todo.id);
+    if (task.state == state.pending) {
+      return [$("input", this.getCheckbox(todo, actions, true)), todo.title, this.renderMiniLoading()];
+    }
+    else if (task.state == state.successfull || task.state == state.fresh) {
+      return [$("input", this.getCheckbox(todo, actions, false)), todo.title];
+    }
+    else if (task.state == state.failed) {
+      return [$("div",{id: "todo-error"},this.renderError(task, actions))]
+    }
+  }
+
+
+  getCheckbox = (todo, actions, isDisabled) => {
+    const checkbox = {
+      checked: todo.isDone,
+      id: todo.id,
+      type: "checkbox",
+      disabled: isDisabled,
+      onchange: e => actions.toogle(todo, e)
+    }
+    return checkbox;
+  }
+
   renderSearchBar = (todos, actions) => {
     const input = $("input", {
       placeholder: "Search",
       value: todos.query,
-      oninput: e => actions.search(e)});
+      id: "search-input"
+    });
+    input.oninput = e =>{
+      this.elementInFocus = input;
+      actions.search(e);
+    } 
+    if(this.elementInFocus != null && this.elementInFocus.id == input.id){
+      this.elementInFocus = input;
+    }
 
-    this.elementInFocus = input; 
-      
-    return $("div", {id: "search-bar"}, 
+    return $("div", { id: "search-bar" },
       input,
-      todos.query 
+      todos.query
         ? $("button", {
-            id: "mark-button",
-            onclick: e => actions.markAll(todos.filtered, e)},
-            "MarkAll")
-        : null        
-      );
+          id: "mark-button",
+          onclick: e => actions.markAll(todos.filtered, e)
+        },
+          "MarkAll")
+        : null
+    );
   }
 
+
+  renderEmptyTodo = (todos, actions) => {
+    const task = todos.getTaskInfo("todos");
+    if(task.state == state.successfull){
+      return $("div",{id: "empty-todo"}, ...this.renderInputBox(todos, actions));
+    }
+  }
+
+  renderInputBox = (todos, actions) =>{
+
+    const task = todos.getTaskInfo("newTodo");
+    const input  = {};
+    const createButton = {};
+    const loading = {};
+    if(task.state == state.pending){
+      input.value = this.renderNewTodoBox(todos.newTodo, true);
+      createButton.value = this.renderCreateButton(actions, input.value,true);
+      loading.value = this.renderMiniLoading();
+    }
+    else if(task.state == state.failed){
+      return [this.renderError(task, actions)];
+    }
+    else{
+      input.value = this.renderNewTodoBox(todos.newTodo, false);
+      createButton.value = this.renderCreateButton(actions, input.value,false);
+    }
+    
+    input.value.oninput = e => {
+      this.elementInFocus = input;
+      actions.saveValue(e);
+    };
+    if(this.elementInFocus != null && this.elementInFocus.id == input.id){
+      this.elementInFocus = input.value;
+    }
+    return [input.value, createButton.value, loading.value];
+  }
+
+  renderNewTodoBox = (value, isDisabled) =>
+    $("input", {placeholder: "New Todo",
+                value: value || "",
+                id: "new-todo-input",
+                disabled: isDisabled});
+
+  renderCreateButton = (actions, input, isDisabled) =>
+    $("input", {type: "button",
+                value: "Create",
+                onclick: e => actions.createNewTodo(input.value),
+                disabled: isDisabled});
+
+
+  renderError = (task, actions) =>
+    $("div", {id: "error"}, task.result, $("button", {
+      onclick: e => actions.rerunTask(task),
+      id: "rerun-button"
+    }, "reran"))
+  
+  
   renderCompleated = (todos) =>
     $("div", { id: "compleated" }, `${todos.all.filter(t => t.isDone === true).length}/${todos.all.length}`);
-  
 
 
-  
-  
   renderLoading = () => {
     const div = document.createElement("div");
     div.id = "loading";
     return div;
-    //document.body.append(div);
   }
+  renderMiniLoading = () => 
+  $("img",{src:"https://i.stack.imgur.com/MnyxU.gif",
+            width: "10",
+            height: "10"})
 }

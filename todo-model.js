@@ -6,11 +6,11 @@ class Todo {
 
   constructor(id, title, isDone = false) {
     this.id = id;
-    this.title =  title;
+    this.title = title;
     this.isDone = isDone;
   }
 
-  toogle = () => 
+  toogle = () =>
     new Todo(this.id, this.title, !this.isDone);
 
 }
@@ -23,13 +23,11 @@ class Model {
 
   seedTodos = async () => {
     await delay(1000);
-    return new Model(Array.from({ length: 6 }, (_, i) => new Todo(i, `Task ${i}`)))
+    return new Model(Array.from({ length: 6 }, (_, i) => new Todo(i, `Task ${i}`)), []);
   }
 
   toogle = async (todo) => {
-    // console.log(await delay(2000), to);
-    await delay(2000);
-    // return this.toogleMany(this.toogleList);
+    await maybeDelay(2000, "Сорян, не смогли бахнуть галочку");
     const todos = this.todos.slice();
     todos.splice(todos.indexOf(todo), 1, todo.toogle());
     return new Model(todos);
@@ -41,8 +39,21 @@ class Model {
       todos.splice(todos.indexOf(todo), 1, todo.toogle()));
     return new Model(todos);
   }
-  
+
+
+  addTodo = async(title) => {
+    await maybeDelay(1000, "Не удалось создать элемент");
+    const newTodo = new Todo(this.todos.length, title, false);
+    const todos = this.todos.slice();
+    todos.push(newTodo);
+    return new Model(todos)
+  }
 }
 
-const delay = num => 
-  new Promise(resolve => setTimeout(resolve, num,"Delay"));
+const delay = num =>
+  new Promise(resolve => setTimeout(resolve, num, "Delay"));
+
+
+const maybeDelay = (num, reason) =>
+  new Promise((resolve, reject) =>
+    setTimeout(() => Math.random() > 0.5 ? resolve() : reject(reason), num, "Delay"));

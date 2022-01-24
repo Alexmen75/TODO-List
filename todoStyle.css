@@ -1,5 +1,5 @@
 #loading {
-  display: flex;
+  /* display: flex; */
   position: fixed;
   z-index: 50;
   /* width: auto;
@@ -11,10 +11,23 @@
   background-image: url("https://i.stack.imgur.com/MnyxU.gif");
   background-repeat: no-repeat;
   background-position: center;
-  
 }
 
-label {
+#todo {
   display: block;
-  padding: 10px;
+  padding-left: 10px;
+  padding-top: 10px;
+}
+
+#empty-todo{
+  padding-top: 10px;
+  padding-left: 15px;
+}
+
+#todo-error{
+  padding-left: 3px;
+}
+
+#rerun-button{
+  margin-left: 10px;
 }

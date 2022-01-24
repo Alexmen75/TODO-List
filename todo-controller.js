@@ -3,29 +3,62 @@ class ViewModel {
 
   query; // string
   filtered; // array of Todos
+  newTodo;
+
+  tasks = new Set();
 
 
-  constructor(all, query = '') {
-    this.all = all || [];
+  constructor(all, tasks, newTodo, query = '') {
+    const todos = all || [];
+    this.all = todos;
     this.query = query;
-    this.filtered = this.all.filter(todo =>
+    this.newTodo = newTodo || "";
+    this.tasks = tasks || new Set();
+    this.filtered = todos.filter(todo =>
       todo.title.includes(this.query));
+  }
+
+  getTaskInfo = (id) => {
+    const task = Array.from(this.tasks).find(x => x.id == id);
+    if(task == undefined){
+      return {
+        state: state.successfull,
+        result: ""
+      }
+    }
+    return task;
   }
 }
 
 
+const state = {
+  fresh: 0,
+  pending: 1,
+  successfull: 2,
+  failed: 3
+}
+
+class TaskStaet{
+  id;
+  state;
+  action;
+  result;
+
+  constructor(id, action){
+    this.id = id;
+    this.action = action;
+    this.state = state.fresh;
+  }
+}
 
 
 class Controller {
   model;
   view;
   viewModel;
-  
-  loadingContent = {
-    usingEntries: new Set(),
-    insertByResult: new Map(),
-  } 
-  
+
+
+
 
 
   constructor(model, view) {
@@ -33,134 +66,111 @@ class Controller {
     this.setModel(model);
   }
 
+
   setModel = (model) => {
     this.model = model;
-    this.viewModel = new ViewModel(this.model.todos, (this.viewModel || {}).query);
+    const tasks = this.viewModel == undefined ? new Set() : this.viewModel.tasks;
+    this.viewModel = new ViewModel(this.model.todos, tasks, (this.viewModel || {}).newTodo,(this.viewModel || {}).query);
   }
 
-  switchChange = (model, contextModel) => {
+
+  applyChange = (model, contextModel) => {
+    if (contextModel.todos == undefined) {
+      this.setModel(model);
+      return;
+    }
     const aggregateModel = model;
     aggregateModel.todos = model.todos.map(todo => {
       const contextValue = contextModel.todos.find(x => x.id == todo.id);
-      return contextValue.isDone == todo.isDone ?
-              this.model.todos.find(x => x.id == contextValue.id) :
-              todo;
-    }) 
+      return contextValue != undefined && contextValue.isDone == todo.isDone ?
+        this.model.todos.find(x => x.id == contextValue.id) :
+        todo;
+    })
     this.setModel(aggregateModel);
   }
-     // if(contextValue.isDone == todo.isDone){
-      //   return this.model.todos.find(x => x.id == contextValue.id);
-      // }
-      // return todo;
-
-  run = async () => {
-    this.blockLoadExecute(["todos"], this.model.seedTodos, this.setModel);
-    this.rerender();
 
 
-    // this.usingEntries.add("todos");
-    // this.load(() => {
-    //   return this.model.seedTodos();
-    // }, this.setModel, (_) => this.usingEntries.delete("todos"));
-    // Загрузили данные с сервера
-    // this.setModel(await this.model.seedTodos());
+  runTask = async (task) => {
+    try{
+      task.state = state.pending;
+      this.rerender();
+      const contextModel = this.model;
+      const result = await task.action(contextModel);
+      this.applyChange(result, contextModel);
+      task.state = state.successfull;
+      this.viewModel.tasks.delete(task);
+    }
+    catch(error){
+      console.log(error);
+      task.state = state.failed;
+      task.result = error;
+    }
+    finally{
+      this.rerender();
+    }
   }
+
+  asyncActionTask =  (func, id) => async() => {
+    const task = new TaskStaet(id, func);
+    this.viewModel.tasks.add(task);
+    await this.runTask(task);
+   
+  }
+
+  rerunTask = async (task) => {
+    task.state = state.fresh;
+    await this.runTask(task);
+  }
+
+
+
+  run = this.asyncActionTask(
+    model => model.seedTodos(),
+    "todos");
+
+
 
   rerender = () => {
-    console.log('страница обновлена')
     this.view.render(this.viewModel, this);
   }
-  
-  // renderSearchResult = (model) => {  
-  //   this.view.renderSearchRequest(model, this);
-  // }
 
 
-  toogle = async (todo, e) => {
-    // this.rerender();
-    // const contextModel = this.model
-    // this.setModel(await contextModel.toogle(todo), contextModel);
-    // this.rerender();
-    
-    const contextModel = this.model;
-    this.blockLoadExecute([todo.id], () => this.model.toogle(todo), result => this.switchChange(result, contextModel));
-    this.rerender();
-    // this.load(() => {
-    //   this.usingEntries.add(todo.id);
-    //   return this.model.toogle(todo);
-    // }, 
-    // this.setModel, 
-    // (_) => this.usingEntries.delete(todo.id));
-    // this.execute();
-    
 
-  }
+
+  toogle = async (todo, e) =>
+    this.asyncActionTask(
+      model => model.toogle(todo),
+      todo.id)();
+
+
 
   search = e => {
-    this.viewModel = new ViewModel(this.model.todos, e.target.value);
+    this.viewModel = new ViewModel(this.model.todos, this.viewModel.tasks, this.viewModel.newTodo,e.target.value);
     this.rerender();
   }
+
 
   markAll = (todos, e) => {
     this.setModel(this.model.toogleMany(todos));
     this.rerender();
   }
 
-  load = (func,...needToPut) => {
-    this.loadingContent.insertByResult.set(func, Array.from(needToPut));
-  }
 
-  // loadExecute = (func, ...needToPut) => {
-  //   this.load(func, needToPut);
-  //   this.execute();
-  // }
-
-  block = (...block) => this.loadingContent.usingEntries.add(...block);
-
-  blockLoadExecute = (block, func, ...needToPut) => {
-      this.block(...block);
-      this.load(func, ...needToPut);
-      this.execute();
-  }
-
-
-  execute = async () => 
-
-    this.loadingContent.insertByResult.forEach(async (value, key) => {
-      const result = await key();
-      value.forEach(func => func(result));
-      this.loadingContent.insertByResult.delete(key);
-      this.loadingContent.usingEntries.clear();
-      this.rerender();
-    })
-
-
-
-
-    //   await Array.from(this.loadingContent.insertByResult.entries()).map(async([key, value]) => {
-    //   const result = await key();
-    //   const r = value.map(func => func(result));
-    //   this.loadingContent.insertByResult.delete(key);
-    //   this.loadingContent.usingEntries.clear();
-    //   this.rerender();
-    //   return r;
-    // });
-    
-
-    // Array.from(this.loadingContent.entries())
-    // .map(async ([key, value]) => {
-    //   const result = await key();
-    //   return ([result, value, key]);
-    // })
-    // .map(async (promise) =>{
-    //   const [result, values, key] = await promise;
-    //   values.forEach(value => value(result));
-    //   return key;
-    // })
-    // .forEach(async (promise) => {
-    //   const key = await promise;
-    //   this.loadingContent.delete(key);
-    //   this.rerender();
-    // });
+  createNewTodo = async(title) => 
+    title.trim() != "" ?
+    this.asyncActionTask(
+      model => {
+        const newModel = model.addTodo(title.trim());
+        this.viewModel = new ViewModel(this.model.todos, this.viewModel.tasks, "", this.viewModel.query);
+        return newModel;
+      }, "newTodo")() :
+    null;
   
+ 
+
+  saveValue = e => {
+    this.viewModel = new ViewModel(this.model.todos, this.viewModel.tasks, e.target.value, this.viewModel.query);
+    this.rerender();
+  }
+
 }
