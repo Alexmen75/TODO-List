@@ -14,6 +14,7 @@ class View {
   renderApp = (todos, actions) =>
     $("div", {},
       this.renderSearchBar(todos, actions),
+      this.renderAddButton(actions),
       this.renderTodoSection(todos, actions));
 
 
@@ -21,7 +22,7 @@ class View {
     $("div", { id: "todos-section" },
       this.renderCompleated(todos),
       this.getTodoContent(todos, actions),
-      this.renderEmptyTodo(todos, actions));
+      this.renderEmptyTodos(todos, actions));
 
 
   getTodoContent = (todos, actions) => {
@@ -102,52 +103,93 @@ class View {
   }
 
 
-  renderEmptyTodo = (todos, actions) => {
-    const task = todos.getTaskInfo("todos");
-    if(task.state == state.successfull){
-      return $("div",{id: "empty-todo"}, ...this.renderInputBox(todos, actions));
-    }
+
+  renderAddButton = (actions) => 
+    $("input", {type: "button",
+                value: "add",
+                onclick: actions.addEmptyTodo});
+  
+  renderEmptyTodos = (todos, actions) => 
+    $("div",{},
+      ...todos.emptyTodoArray.map(todo => this.renderEmptyTodo(todo, actions)));
+  
+  renderEmptyTodo = (todo, actions) => {
+   return $("div", {id: "empty-todo"}, ...this.renderInputBox(todo, actions));
   }
 
-  renderInputBox = (todos, actions) =>{
-
-    const task = todos.getTaskInfo("newTodo");
-    const input  = {};
-    const createButton = {};
-    const loading = {};
-    if(task.state == state.pending){
-      input.value = this.renderNewTodoBox(todos.newTodo, true);
-      createButton.value = this.renderCreateButton(actions, input.value,true);
-      loading.value = this.renderMiniLoading();
-    }
-    else if(task.state == state.failed){
-      return [this.renderError(task, actions)];
-    }
-    else{
-      input.value = this.renderNewTodoBox(todos.newTodo, false);
-      createButton.value = this.renderCreateButton(actions, input.value,false);
-    }
+  renderInputBox = (todo, actions) =>{
+    // const task = todos.getTaskInfo("newTodo");
+    const input = this.renderNewTodoBox(todo, false);
+    const createButton = this.renderCreateButton(actions, todo, false);
+    // if(task.state == state.pending){
+    //   input.value = this.renderNewTodoBox(todos.newTodo, true);
+    //   createButton.value = this.renderCreateButton(actions, input.value,true);
+    //   loading.value = this.renderMiniLoading();
+    // }
+    // else if(task.state == state.failed){
+    //   return [this.renderError(task, actions)];
+    // }
+    // else{
+    //   input.value = this.renderNewTodoBox(todos.newTodo, false);
+    //   createButton.value = this.renderCreateButton(actions, input.value,false);
+    // }
     
-    input.value.oninput = e => {
+    input.oninput = e => {
       this.elementInFocus = input;
-      actions.saveValue(e);
+      actions.saveValue(todo, e);
     };
     if(this.elementInFocus != null && this.elementInFocus.id == input.id){
-      this.elementInFocus = input.value;
+      this.elementInFocus = input;
     }
-    return [input.value, createButton.value, loading.value];
-  }
+    return [input, createButton];
 
-  renderNewTodoBox = (value, isDisabled) =>
+  }
+  // renderEmptyTodos = (todos, actions) => {
+  //   const task = todos.getTaskInfo("todos");
+  //   if(task.state == state.successfull){
+  //     return $("div",{id: "empty-todo"}, ...this.renderInputBox(todos, actions));
+  //   }
+  // }
+
+  // renderInputBox = (todos, actions) =>{
+
+  //   const task = todos.getTaskInfo("newTodo");
+  //   const input  = {};
+  //   const createButton = {};
+  //   const loading = {};
+  //   if(task.state == state.pending){
+  //     input.value = this.renderNewTodoBox(todos.newTodo, true);
+  //     createButton.value = this.renderCreateButton(actions, input.value,true);
+  //     loading.value = this.renderMiniLoading();
+  //   }
+  //   else if(task.state == state.failed){
+  //     return [this.renderError(task, actions)];
+  //   }
+  //   else{
+  //     input.value = this.renderNewTodoBox(todos.newTodo, false);
+  //     createButton.value = this.renderCreateButton(actions, input.value,false);
+  //   }
+    
+  //   input.value.oninput = e => {
+  //     this.elementInFocus = input;
+  //     actions.saveValue(e);
+  //   };
+  //   if(this.elementInFocus != null && this.elementInFocus.id == input.id){
+  //     this.elementInFocus = input.value;
+  //   }
+  //   return [input.value, createButton.value, loading.value];
+  // }
+
+  renderNewTodoBox = (todo, isDisabled) =>
     $("input", {placeholder: "New Todo",
-                value: value || "",
+                value: todo.title || "",
                 id: "new-todo-input",
                 disabled: isDisabled});
 
-  renderCreateButton = (actions, input, isDisabled) =>
+  renderCreateButton = (actions, todo, isDisabled) =>
     $("input", {type: "button",
                 value: "Create",
-                onclick: e => actions.createNewTodo(input.value),
+                onclick: e => actions.createNewTodo(todo),
                 disabled: isDisabled});
 
 

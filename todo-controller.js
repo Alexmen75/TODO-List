@@ -5,14 +5,15 @@ class ViewModel {
   filtered; // array of Todos
   newTodo;
 
+  emptyTodoArray = [];
   tasks = new Set();
 
 
-  constructor(all, tasks, newTodo, query = '') {
+  constructor(all, tasks, emptyTodos, query = '') {
     const todos = all || [];
     this.all = todos;
     this.query = query;
-    this.newTodo = newTodo || "";
+    this.emptyTodoArray = emptyTodos || [];
     this.tasks = tasks || new Set();
     this.filtered = todos.filter(todo =>
       todo.title.includes(this.query));
@@ -59,8 +60,6 @@ class Controller {
 
 
 
-
-
   constructor(model, view) {
     this.view = view;
     this.setModel(model);
@@ -70,7 +69,7 @@ class Controller {
   setModel = (model) => {
     this.model = model;
     const tasks = this.viewModel == undefined ? new Set() : this.viewModel.tasks;
-    this.viewModel = new ViewModel(this.model.todos, tasks, (this.viewModel || {}).newTodo,(this.viewModel || {}).query);
+    this.viewModel = new ViewModel(this.model.todos, tasks, (this.viewModel || {}).emptyTodoArray,(this.viewModel || {}).query);
   }
 
 
@@ -156,21 +155,39 @@ class Controller {
   }
 
 
-  createNewTodo = async(title) => 
-    title.trim() != "" ?
-    this.asyncActionTask(
-      model => {
-        const newModel = model.addTodo(title.trim());
-        this.viewModel = new ViewModel(this.model.todos, this.viewModel.tasks, "", this.viewModel.query);
-        return newModel;
-      }, "newTodo")() :
-    null;
-  
+  // createNewTodo = async(title) => 
+  //   title.trim() != "" ?
+  //   this.asyncActionTask(
+  //     model => {
+  //       const newModel = model.addTodo(title.trim());
+  //       this.viewModel = new ViewModel(this.model.todos, this.viewModel.tasks, "", this.viewModel.query);
+  //       return newModel;
+  //     }, "newTodo")() :
+  //   null;
+
+
+  createNewTodo = (emptyTodo) => {
+    const newModel = this.model.addTodo(emptyTodo);
+    const newEmptyTodos = this.viewModel.emptyTodoArray.slice();
+    newEmptyTodos.splice(newEmptyTodos.indexOf(emptyTodo), 1);
+    this.viewModel.emptyTodoArray = newEmptyTodos;
+    this.setModel(newModel);
+    this.rerender();
+  }
+
+  addEmptyTodo = () =>{
+    const todo = new Todo( -this.viewModel.all.length - this.viewModel.emptyTodoArray.length, "");
+    const emptyTodoArray = this.viewModel.emptyTodoArray.slice();
+    emptyTodoArray.push(todo);
+    this.viewModel = new ViewModel(this.model.todos, this.viewModel.tasks, emptyTodoArray, this.viewModel.query);
+    this.rerender();
+  }
  
 
-  saveValue = e => {
-    this.viewModel = new ViewModel(this.model.todos, this.viewModel.tasks, e.target.value, this.viewModel.query);
-    this.rerender();
+  saveValue = (todo, e) => {
+    // this.viewModel = new ViewModel(this.model.todos, this.viewModel.tasks, e.target.value, this.viewModel.query);
+    // this.rerender();
+    todo.title = e.target.value;
   }
 
 }

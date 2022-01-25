@@ -41,9 +41,9 @@ class Model {
   }
 
 
-  addTodo = async(title) => {
-    await maybeDelay(1000, "Не удалось создать элемент");
-    const newTodo = new Todo(this.todos.length, title, false);
+  addTodo = (emptyTodo) => {
+    // await maybeDelay(1000, "Не удалось создать элемент");
+    const newTodo = new Todo(this.todos.length, emptyTodo.title, false);
     const todos = this.todos.slice();
     todos.push(newTodo);
     return new Model(todos)

@@ -20,7 +20,8 @@
 }
 
 #empty-todo{
-  padding-top: 10px;
+  display: block;
+  padding-top: 15px;
   padding-left: 15px;
 }
 
