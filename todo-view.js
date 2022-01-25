@@ -111,37 +111,30 @@ class View {
   
   renderEmptyTodos = (todos, actions) => 
     $("div",{},
-      ...todos.emptyTodoArray.map(todo => this.renderEmptyTodo(todo, actions)));
+      ...todos.emptyTodoArray.map(todo => this.renderEmptyTodo(todos, actions, todo)));
   
-  renderEmptyTodo = (todo, actions) => {
-   return $("div", {id: "empty-todo"}, ...this.renderInputBox(todo, actions));
+  renderEmptyTodo = (todos, actions, todo) => {
+   return $("div", {id: "empty-todo"}, this.renderInputBox(todos, actions, todo));
   }
 
-  renderInputBox = (todo, actions) =>{
-    // const task = todos.getTaskInfo("newTodo");
-    const input = this.renderNewTodoBox(todo, false);
-    const createButton = this.renderCreateButton(actions, todo, false);
-    // if(task.state == state.pending){
-    //   input.value = this.renderNewTodoBox(todos.newTodo, true);
-    //   createButton.value = this.renderCreateButton(actions, input.value,true);
-    //   loading.value = this.renderMiniLoading();
-    // }
-    // else if(task.state == state.failed){
-    //   return [this.renderError(task, actions)];
-    // }
-    // else{
-    //   input.value = this.renderNewTodoBox(todos.newTodo, false);
-    //   createButton.value = this.renderCreateButton(actions, input.value,false);
-    // }
-    
-    input.oninput = e => {
-      this.elementInFocus = input;
-      actions.saveValue(todo, e);
-    };
+  renderInputBox = (todos, actions, todo) =>{
+    const task = todos.getTaskInfo("newTodo");
+    if(task.state == state.failed){
+      return this.renderError(task, actions);
+    }
+    const isDisabled = task.state == state.pending;
+    const input = $("input", {placeholder: "New todo",
+                              value: todo.title,
+                              oninput: e => actions.saveValue(todo, e),
+                              disabled: isDisabled});
+    input.onfocus = e => this.elementInFocus = input;
+
     if(this.elementInFocus != null && this.elementInFocus.id == input.id){
       this.elementInFocus = input;
     }
-    return [input, createButton];
+    return $("form",{onsubmit: e => actions.createNewTodo(todo)},
+              input,
+              $("input", {type: "submit"}));
 
   }
   // renderEmptyTodos = (todos, actions) => {

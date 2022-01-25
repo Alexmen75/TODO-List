@@ -41,12 +41,13 @@ class Model {
   }
 
 
-  addTodo = (emptyTodo) => {
-    // await maybeDelay(1000, "Не удалось создать элемент");
+  addTodo = async(emptyTodo) => {
+  // addTodo = async(emptyTodo) => {
+    await maybeDelay(1000, "Не удалось создать элемент");
     const newTodo = new Todo(this.todos.length, emptyTodo.title, false);
     const todos = this.todos.slice();
     todos.push(newTodo);
-    return new Model(todos)
+    return new Model(todos);
   }
 }
 
@@ -56,4 +57,4 @@ const delay = num =>
 
 const maybeDelay = (num, reason) =>
   new Promise((resolve, reject) =>
-    setTimeout(() => Math.random() > 0.5 ? resolve() : reject(reason), num, "Delay"));
+    setTimeout(() => Math.random() > 0.1 ? resolve() : reject(reason), num, "Delay"));

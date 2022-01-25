@@ -109,7 +109,7 @@ class Controller {
     }
   }
 
-  asyncActionTask =  (func, id) => async() => {
+  asyncActionTask = (func, id) => async() => {
     const task = new TaskStaet(id, func);
     this.viewModel.tasks.add(task);
     await this.runTask(task);
@@ -166,14 +166,16 @@ class Controller {
   //   null;
 
 
-  createNewTodo = (emptyTodo) => {
-    const newModel = this.model.addTodo(emptyTodo);
-    const newEmptyTodos = this.viewModel.emptyTodoArray.slice();
-    newEmptyTodos.splice(newEmptyTodos.indexOf(emptyTodo), 1);
-    this.viewModel.emptyTodoArray = newEmptyTodos;
-    this.setModel(newModel);
-    this.rerender();
-  }
+  createNewTodo = (emptyTodo) => 
+    this.asyncActionTask(async model =>{
+      const result = await model.addTodo(emptyTodo);
+      const newEmptyTodos = this.viewModel.emptyTodoArray.slice();
+      newEmptyTodos.splice(newEmptyTodos.indexOf(emptyTodo), 1);
+      this.setModel(result);
+      this.viewModel.emptyTodoArray = newEmptyTodos;
+      return result;
+    }, emptyTodo.id)();
+    
 
   addEmptyTodo = () =>{
     const todo = new Todo( -this.viewModel.all.length - this.viewModel.emptyTodoArray.length, "");
@@ -185,8 +187,6 @@ class Controller {
  
 
   saveValue = (todo, e) => {
-    // this.viewModel = new ViewModel(this.model.todos, this.viewModel.tasks, e.target.value, this.viewModel.query);
-    // this.rerender();
     todo.title = e.target.value;
   }
 
